@@ -1,7 +1,7 @@
 // Service worker : met toute l'application en cache pour un usage hors ligne.
 // Stratégie « stale-while-revalidate » : réponse immédiate depuis le cache, mise à
 // jour en arrière-plan. Changer VERSION à chaque publication purge l'ancien cache.
-const VERSION = 'cutieqr-v2';
+const VERSION = 'cutieqr-v3';
 
 const ASSETS = [
   './',

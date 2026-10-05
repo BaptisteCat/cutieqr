@@ -23,6 +23,13 @@ aucun contenu n'est envoyé sur un serveur, et l'application fonctionne hors lig
 - Cadre : bordure, légende en haut ou en bas, ou texte seul ; police, gras, majuscules, coins arrondis
 - Zone de silence et niveau de correction d'erreur réglables (automatiquement élevé avec un logo)
 
+**QR code compact** (onglet Contenu)
+- Encodage optimal en segments numériques, alphanumériques et octets, plus petite version possible,
+  puis correction d'erreur relevée tant que la taille ne change pas
+- Pour un lien : schéma et domaine en majuscules (sans effet sur la destination), « / » final retiré ;
+  en option, « www. » et paramètres de suivi (utm_…, fbclid…) retirés
+- Gain affiché (par exemple 37×37 → 25×25 modules) et adresse réellement encodée
+
 **Aperçu**
 - Scène automatique : un QR code clair sur fond transparent s'affiche sur fond sombre,
   un QR code sombre transparent sur damier ; choix manuel Auto / Damier / Clair / Sombre

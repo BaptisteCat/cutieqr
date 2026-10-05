@@ -36,6 +36,7 @@ export function defaultStyle() {
     eyes: { outer: 'square', inner: 'square', custom: false, outerColor: '#111111', innerColor: '#111111' },
     bg: { type: 'solid', c1: '#ffffff', c2: '#e9eef5', angle: 90 },
     logo: { src: null, size: 22, pad: 1, shape: 'square', clear: true, plate: false, plateColor: '#ffffff' },
+    compact: { enabled: false, www: false, tracking: false },
     frame: {
       style: 'none', text: 'Scannez-moi', font: 'sans', bold: true, upper: false, size: 3,
       color: '#111111', textColor: '#ffffff', radius: 0, thickness: 1.5,
@@ -68,6 +69,7 @@ export function mergeStyle(partial) {
   });
   const shapeIds = EYE_SHAPES.map((s) => s.id);
   const dots = sub(p, 'dots'), eyes = sub(p, 'eyes'), logo = sub(p, 'logo'), frame = sub(p, 'frame');
+  const compact = sub(p, 'compact');
   return {
     ecc: pick(p.ecc, ['auto', 'L', 'M', 'Q', 'H'], d.ecc),
     margin: Math.round(num(p.margin, 0, 8, d.margin)),
@@ -93,6 +95,11 @@ export function mergeStyle(partial) {
       plate: bool(logo.plate, d.logo.plate),
       plateColor: color(logo.plateColor, d.logo.plateColor),
     },
+    compact: {
+      enabled: bool(compact.enabled, d.compact.enabled),
+      www: bool(compact.www, d.compact.www),
+      tracking: bool(compact.tracking, d.compact.tracking),
+    },
     frame: {
       style: pick(frame.style, ['none', 'border', 'bottom', 'top', 'label'], d.frame.style),
       text: typeof frame.text === 'string' ? frame.text.slice(0, 60) : d.frame.text,
@@ -110,28 +117,140 @@ export function mergeStyle(partial) {
 
 export function resolveEcc(style) {
   if (style.ecc !== 'auto') return style.ecc;
-  return style.logo.src ? 'H' : 'M';
+  if (style.logo.src) return 'H';
+  // En compact, on part du plancher L : la correction est ensuite relevée au maximum
+  // que permet la version obtenue.
+  return style.compact.enabled ? 'L' : 'M';
 }
 
 // Un logo masque des modules : les toutes petites versions n'ont pas assez de
 // redondance pour l'encaisser, on impose alors au moins la version 3 (29×29).
 export const MIN_VERSION_WITH_LOGO = 3;
 
-// → { n, cells (Uint8Array n×n), version, ecc, bytes } ; lève une erreur si le contenu est trop long.
-export function makeMatrix(data, ecc, minVersion = 0) {
-  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
-  let qr = qrcode(0, ecc);
-  qr.addData(data, 'Byte');
+/* ---------- Encodage compact ----------
+   Un QR code peut enchaîner des segments de modes différents : numérique
+   (3,3 bits par chiffre), alphanumérique (5,5 bits par caractère parmi
+   0-9 A-Z espace $%*+-./:) et octet (8 bits par octet UTF-8). Le découpage
+   optimal se calcule par programmation dynamique (méthode de Nayuki), en
+   sixièmes de bit pour rester en nombres entiers. */
+
+const ALNUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+const MODES = ['Numeric', 'Alphanumeric', 'Byte'];
+const MODE_LETTER = { Numeric: 'N', Alphanumeric: 'A', Byte: 'B' };
+// Bits du compteur de caractères selon la tranche de versions (1-9, 10-26, 27-40).
+const COUNT_BITS = { Numeric: [10, 12, 14], Alphanumeric: [9, 11, 13], Byte: [8, 16, 16] };
+const ECC_ORDER = ['L', 'M', 'Q', 'H'];
+
+const isDigit = (ch) => ch >= '0' && ch <= '9';
+const isAlnum = (ch) => ch.length === 1 && ALNUM.includes(ch);
+const utf8Length = (ch) => {
+  const c = ch.codePointAt(0);
+  return c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+};
+
+// → [{ mode, text }] minimisant le nombre de bits pour une tranche de versions.
+export function segmentize(data, versionGroup = 0) {
+  const chars = [...data];
+  if (!chars.length) return [];
+  const head = {};
+  for (const m of MODES) head[m] = (4 + COUNT_BITS[m][versionGroup]) * 6;
+  let prev = { ...head };
+  const from = [];
+  for (const ch of chars) {
+    const cur = { Numeric: Infinity, Alphanumeric: Infinity, Byte: prev.Byte + utf8Length(ch) * 48 };
+    const step = { Numeric: null, Alphanumeric: null, Byte: 'Byte' };
+    if (isDigit(ch)) { cur.Numeric = prev.Numeric + 20; step.Numeric = 'Numeric'; }
+    if (isAlnum(ch)) { cur.Alphanumeric = prev.Alphanumeric + 33; step.Alphanumeric = 'Alphanumeric'; }
+    // Changer de mode après ce caractère : on clôt le segment (bits entiers) et on ouvre le suivant.
+    const next = { ...cur };
+    for (const to of MODES) {
+      for (const k of MODES) {
+        if (k === to || step[k] === null) continue;
+        const cost = Math.ceil(cur[k] / 6) * 6 + head[to];
+        if (cost < next[to]) { next[to] = cost; step[to] = k; }
+      }
+    }
+    from.push(step);
+    prev = next;
+  }
+  let state = MODES.reduce((a, b) => (Math.ceil(prev[b] / 6) < Math.ceil(prev[a] / 6) ? b : a));
+  const charModes = new Array(chars.length);
+  for (let i = chars.length - 1; i >= 0; i--) {
+    charModes[i] = from[i][state];
+    state = charModes[i];
+  }
+  const segments = [];
+  chars.forEach((ch, i) => {
+    const last = segments[segments.length - 1];
+    if (last && last.mode === charModes[i]) last.text += ch;
+    else segments.push({ mode: charModes[i], text: ch });
+  });
+  return segments;
+}
+
+function buildQr(segments, version, ecc) {
+  const qr = qrcode(version, ecc);
+  for (const s of segments) qr.addData(s.text, s.mode);
   qr.make();
-  if ((qr.getModuleCount() - 17) / 4 < minVersion) {
-    qr = qrcode(minVersion, ecc);
-    qr.addData(data, 'Byte');
-    qr.make();
+  return qr;
+}
+const versionOf = (qr) => (qr.getModuleCount() - 17) / 4;
+
+// Plus petite version pour ces segments (au moins minVersion), ou null si trop long.
+function smallestQr(segments, ecc, minVersion) {
+  let qr;
+  try {
+    qr = buildQr(segments, 0, ecc);
+  } catch {
+    return null;
+  }
+  if (versionOf(qr) < minVersion) qr = buildQr(segments, minVersion, ecc);
+  return qr;
+}
+
+// Encodage compact : découpage optimal pour chaque tranche de versions, plus
+// petite version obtenue, puis correction d'erreur relevée tant que la taille
+// ne change pas (plus robuste, pas plus grand).
+function compactQr(data, ecc, minVersion) {
+  let best = null;
+  for (let g = 0; g < 3; g++) {
+    const segments = segmentize(data, g);
+    const qr = smallestQr(segments, ecc, minVersion);
+    if (qr && (!best || versionOf(qr) < versionOf(best.qr))) best = { qr, segments, ecc };
+  }
+  if (!best) return null;
+  const version = versionOf(best.qr);
+  for (const e of ECC_ORDER.slice(ECC_ORDER.indexOf(ecc) + 1).reverse()) {
+    try {
+      best = { qr: buildQr(best.segments, version, e), segments: best.segments, ecc: e };
+      break;
+    } catch { /* ne tient pas dans cette version */ }
+  }
+  return best;
+}
+
+// → { n, cells (Uint8Array n×n), version, ecc, bytes, segments } ; lève une erreur si le contenu est trop long.
+// compact : encodage optimisé (voir compactQr) ; ecc est alors un plancher.
+export function makeMatrix(data, ecc, minVersion = 0, { compact = false } = {}) {
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+  let qr;
+  let segments = [{ mode: 'Byte', text: data }];
+  if (compact) {
+    const best = compactQr(data, ecc, minVersion);
+    if (!best) throw new Error('code length overflow');
+    ({ qr, segments, ecc } = best);
+  } else {
+    qr = buildQr(segments, 0, ecc);
+    if (versionOf(qr) < minVersion) qr = buildQr(segments, minVersion, ecc);
   }
   const n = qr.getModuleCount();
   const cells = new Uint8Array(n * n);
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) cells[r * n + c] = qr.isDark(r, c) ? 1 : 0;
-  return { n, cells, version: (n - 17) / 4, ecc, bytes: qrcode.stringToBytes(data).length };
+  return {
+    n, cells, version: (n - 17) / 4, ecc,
+    bytes: qrcode.stringToBytes(data).length,
+    segments: segments.map((s) => MODE_LETTER[s.mode] + s.text.length),
+  };
 }
 
 // Centres des motifs d'alignement par version (norme ISO/IEC 18004, annexe E).

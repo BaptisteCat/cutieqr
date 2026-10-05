@@ -224,13 +224,13 @@ function setupTabs() {
 /* ============================== Rendu ============================== */
 
 const matrixCache = new Map();
-function getMatrix(data, ecc, minVersion = 0) {
-  const key = `${ecc}\u0000${minVersion}\u0000${data}`;
+function getMatrix(data, ecc, minVersion = 0, compact = false) {
+  const key = `${ecc}\u0000${minVersion}\u0000${compact ? 1 : 0}\u0000${data}`;
   if (!matrixCache.has(key)) {
     if (matrixCache.size > 24) matrixCache.clear();
     let value;
     try {
-      value = makeMatrix(data, ecc, minVersion);
+      value = makeMatrix(data, ecc, minVersion, { compact });
     } catch {
       value = null;
     }
@@ -247,19 +247,23 @@ let current = { matrix: null, data: SAMPLE_DATA, sample: true };
 
 const minVersion = (style) => (style.logo.src ? MIN_VERSION_WITH_LOGO : 0);
 
+// Contenu encodé et matrice pour un contenu et un style donnés (aperçu, vignettes).
+const payloadFor = (content, style) => buildPayload(content, style.compact);
+const matrixFor = (data, style) => getMatrix(data, resolveEcc(style), minVersion(style), style.compact.enabled);
+
 function compute() {
   const ecc = resolveEcc(state.style);
-  const built = buildPayload(state.content);
+  const built = payloadFor(state.content, state.style);
   let error = built.error && !isContentEmpty(state.content) ? built.error : null;
   if (built.data) {
-    const matrix = getMatrix(built.data, ecc, minVersion(state.style));
+    const matrix = matrixFor(built.data, state.style);
     if (matrix) return { matrix, data: built.data, sample: false, error: null };
     const bytes = new TextEncoder().encode(built.data).length;
     error = `Contenu trop long pour un QR code : ${bytes.toLocaleString('fr-FR')} octets, ` +
       `pour un maximum de ${MAX_BYTES[ecc].toLocaleString('fr-FR')} avec la correction ${ecc}. ` +
       (ecc === 'L' ? 'Raccourcissez le contenu.' : 'Raccourcissez-le ou baissez la correction d’erreur (onglet Formes).');
   }
-  return { matrix: getMatrix(SAMPLE_DATA, ecc, minVersion(state.style)), data: SAMPLE_DATA, sample: true, error };
+  return { matrix: matrixFor(SAMPLE_DATA, state.style), data: SAMPLE_DATA, sample: true, error };
 }
 
 // Un rendu par image ; le minuteur prend le relais quand l'onglet est en arrière-plan
@@ -315,15 +319,45 @@ function renderNow() {
   err.textContent = error || '';
 
   $('#qr-info').textContent = sample ? ''
-    : `Version ${matrix.version} · ${matrix.n}×${matrix.n} · correction ${matrix.ecc} · ` +
-      `${matrix.bytes.toLocaleString('fr-FR')} octet${matrix.bytes > 1 ? 's' : ''}`;
+    : `Version ${matrix.version} · ${matrix.n}×${matrix.n} · correction ${matrix.ecc}` +
+      (state.style.compact.enabled ? ' · compact'
+        : ` · ${matrix.bytes.toLocaleString('fr-FR')} octet${matrix.bytes > 1 ? 's' : ''}`);
   preview.setAttribute('aria-label', sample ? 'Aperçu d’exemple du QR code' : `QR code : ${describeContent(state.content)}`);
 
   for (const id of ['btn-download', 'btn-copy', 'btn-share', 'btn-save']) $('#' + id).disabled = sample;
+  updateCompactGain();
   $('#export-name').placeholder = defaultFileName();
   updateContrastWarning();
   scheduleScan();
 }
+
+// Gain de l'encodage compact, comparé à l'encodage standard du même contenu.
+function updateCompactGain() {
+  const el = $('#compact-gain');
+  const enc = $('#compact-encoded');
+  if (!state.style.compact.enabled || current.sample) {
+    el.textContent = state.style.compact.enabled ? 'Le gain s’affichera dès que le contenu sera saisi.' : '';
+    enc.hidden = true;
+    return;
+  }
+  const standardStyle = { ...state.style, compact: { enabled: false, www: false, tracking: false } };
+  const std = matrixFor(payloadFor(state.content, standardStyle).data || current.data, standardStyle);
+  const m = current.matrix;
+  if (std && std.n > m.n) {
+    const saved = Math.round((1 - (m.n * m.n) / (std.n * std.n)) * 100);
+    el.textContent = `${m.n}×${m.n} modules au lieu de ${std.n}×${std.n} : ${saved} % de surface en moins, correction ${m.ecc}.` +
+      (ECC_RANK[m.ecc] < ECC_RANK[std.ecc]
+        ? ` Une partie du gain vient d’une correction plus faible (${m.ecc} au lieu de ${std.ecc}) : le code tolère moins les taches et pliures. Pour la garder, choisissez « ${std.ecc} » dans Formes → Correction d’erreur.`
+        : '');
+  } else if (std && ECC_RANK[m.ecc] > ECC_RANK[std.ecc]) {
+    el.textContent = `Même taille (${m.n}×${m.n}), mais correction relevée de ${std.ecc} à ${m.ecc} : plus robuste.`;
+  } else {
+    el.textContent = `Déjà au plus compact : ${m.n}×${m.n} modules.`;
+  }
+  enc.hidden = state.content.type !== 'url';
+  enc.textContent = `Adresse encodée : ${current.data}`;
+}
+const ECC_RANK = { L: 0, M: 1, Q: 2, H: 3 };
 
 function updateContrastWarning() {
   const s = state.style;
@@ -379,7 +413,9 @@ function scheduleScan() {
     }
     if (token !== scanToken) return;
     if (ok) setBadge('ok', 'Lecture vérifiée', 'Le QR code a été relu avec succès par un décodeur.');
-    else setBadge('fail', 'Lecture incertaine', 'Le décodeur intégré n’a pas pu le relire : augmentez le contraste, réduisez le logo ou choisissez des formes plus pleines, puis testez avec un téléphone.');
+    else if (style.compact.enabled && current.matrix.ecc === 'L') {
+      setBadge('fail', 'Lecture incertaine', 'En compact, la correction est descendue à L : choisissez « M » dans Formes → Correction d’erreur, ou des formes plus pleines, puis testez avec un téléphone.');
+    } else setBadge('fail', 'Lecture incertaine', 'Le décodeur intégré n’a pas pu le relire : augmentez le contraste, réduisez le logo ou choisissez des formes plus pleines, puis testez avec un téléphone.');
   }, 380);
 }
 
@@ -560,8 +596,8 @@ let thumbMatrix = null;
 function thumbSVG(content, style) {
   let matrix = null;
   if (content) {
-    const built = buildPayload(content);
-    if (built.data) matrix = getMatrix(built.data, resolveEcc(style), minVersion(style));
+    const built = payloadFor(content, style);
+    if (built.data) matrix = matrixFor(built.data, style);
   }
   thumbMatrix ||= getMatrix('CutieQR', 'M');
   return renderSVG(matrix || thumbMatrix, style).svg;

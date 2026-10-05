@@ -55,6 +55,27 @@ function buildUrl({ value }) {
   return { data: /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : 'https://' + v };
 }
 
+// Paramètres de suivi publicitaire, sans effet sur la page affichée.
+const TRACKING = /^(utm_[a-z_]+|fbclid|gclid|dclid|gbraid|wbraid|msclkid|mc_cid|mc_eid|igshid|yclid|_hsenc|_hsmi|mkt_tok)$/i;
+
+// Raccourcit une URL web sans changer sa destination : schéma et nom de domaine
+// en majuscules (insensibles à la casse, et encodables en mode alphanumérique),
+// « / » final de la racine retiré ; en option, « www. » et paramètres de suivi.
+// Le chemin et la requête, sensibles à la casse, ne sont pas modifiés.
+export function compactUrl(url, { www = false, tracking = false } = {}) {
+  const m = /^(https?):\/\/([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$/i.exec(url);
+  if (!m) return url;
+  let [, scheme, host, path, query = '', hash = ''] = m;
+  if (!/^[a-z0-9.-]+(:\d+)?$/i.test(host)) return url; // identifiants, domaine accentué : on n'y touche pas
+  if (www && /^www\./i.test(host) && host.split('.').length > 2) host = host.slice(4);
+  if (tracking && query) {
+    const kept = query.slice(1).split('&').filter((p) => p && !TRACKING.test(p.split('=')[0]));
+    query = kept.length ? '?' + kept.join('&') : '';
+  }
+  if (path === '/' && !query && !hash) path = '';
+  return `${scheme.toUpperCase()}://${host.toUpperCase()}${path}${query}${hash}`;
+}
+
 function buildText({ value }) {
   const v = String(value ?? '');
   if (!v.trim()) return { error: 'Saisissez un texte.' };
@@ -164,10 +185,15 @@ function buildSepa(s) {
 
 const BUILDERS = { url: buildUrl, text: buildText, vcard: buildVcard, event: buildEvent, geo: buildGeo, sepa: buildSepa };
 
-// → { data } ou { error }
-export function buildPayload(content) {
+// → { data } ou { error } ; compact = réglages style.compact.
+export function buildPayload(content, compact = null) {
   const build = BUILDERS[content.type];
-  return build ? build(content[content.type]) : { error: 'Type de contenu inconnu.' };
+  if (!build) return { error: 'Type de contenu inconnu.' };
+  const built = build(content[content.type]);
+  if (built.data && compact && compact.enabled && content.type === 'url') {
+    built.data = compactUrl(built.data, compact);
+  }
+  return built;
 }
 
 // Libellé court, pour l'historique et le nom de fichier.

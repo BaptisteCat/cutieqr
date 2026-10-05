@@ -174,6 +174,19 @@
         </div>
 
         <p class="notice" id="content-error" hidden></p>
+
+        <div class="compact-card">
+          <label class="check"><input type="checkbox" data-bind="style.compact.enabled"><span><b>QR code compact</b> — moins de modules, même destination</span></label>
+          <div class="group" data-show="style.compact.enabled=true">
+            <p class="hint">Chiffres et majuscules sont encodés dans les modes économes de la norme, la plus petite taille possible est retenue, puis la correction d’erreur est relevée tant que la taille ne change pas. Pour un lien, le nom du site passe en majuscules : c’est sans effet sur la destination.</p>
+            <div class="group" data-show="content.type=url">
+              <label class="check"><input type="checkbox" data-bind="style.compact.www"><span>Retirer « www. » <i>— seulement si le site répond aussi sans</i></span></label>
+              <label class="check"><input type="checkbox" data-bind="style.compact.tracking"><span>Retirer les paramètres de suivi <i>— utm_…, fbclid, gclid : vos statistiques de campagne ne les verront plus</i></span></label>
+            </div>
+            <p class="compact-gain" id="compact-gain"></p>
+            <code class="compact-encoded" id="compact-encoded" hidden></code>
+          </div>
+        </div>
       </div>
 
       <!-- ===== Couleurs ===== -->
