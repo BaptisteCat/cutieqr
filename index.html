@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; object-src 'none'; base-uri 'self'">
+  <title>CutieQR — créer, personnaliser, exporter</title>
+  <meta name="description" content="Créez des QR codes personnalisés (couleurs, formes, logo, cadre) et exportez-les en PNG, SVG, JPEG, WebP ou PDF. Tout reste sur votre appareil.">
+  <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-title" content="QtQr">
+  <meta name="application-name" content="CutieQR">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <defs>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+      <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+      <symbol id="i-euro" viewBox="0 0 24 24"><path d="M4 10h12M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+      <symbol id="i-swap" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+      <symbol id="i-install" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 7v7M9 11l3 3 3-3"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect class="bm-bg" width="64" height="64" rx="15"/>
+        <g transform="translate(32 32) scale(.8) translate(-31.5 -32)">
+          <g class="bm-fg">
+            <rect x="9" y="18" width="26" height="26" rx="9" stroke-width="6"/>
+            <path d="M30 39 37 47" stroke-width="6"/>
+            <path d="M47 12v13.5Q47 30 51.5 30M43.5 18H51" stroke-width="4"/>
+            <path d="M47 52V35h4a4.25 4.25 0 0 1 0 8.5h-4m3.5 0L55 52" stroke-width="4"/>
+          </g>
+          <rect class="bm-dot" x="18" y="27" width="8" height="8" rx="2.5"/>
+        </g>
+      </svg>
+      <span class="brand-name">Cutie<em>QR</em></span>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn ghost" id="btn-new" title="Repartir d’un QR code vierge">
+        <svg class="icon"><use href="#i-reset"/></svg><span>Nouveau</span>
+      </button>
+      <button type="button" class="btn ghost" id="btn-install" hidden>
+        <svg class="icon"><use href="#i-install"/></svg><span>Installer</span>
+      </button>
+      <button type="button" class="btn ghost icon-only" id="btn-theme" aria-label="Basculer entre thème clair et sombre">
+        <svg class="icon theme-sun"><use href="#i-sun"/></svg>
+        <svg class="icon theme-moon"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="editor" aria-label="Réglages du QR code">
+      <div class="tabs" role="tablist" aria-label="Réglages">
+        <button type="button" role="tab" id="tab-content" aria-controls="panel-content" aria-selected="true">Contenu</button>
+        <button type="button" role="tab" id="tab-colors" aria-controls="panel-colors" aria-selected="false" tabindex="-1">Couleurs</button>
+        <button type="button" role="tab" id="tab-shapes" aria-controls="panel-shapes" aria-selected="false" tabindex="-1">Formes</button>
+        <button type="button" role="tab" id="tab-logo" aria-controls="panel-logo" aria-selected="false" tabindex="-1">Logo</button>
+        <button type="button" role="tab" id="tab-frame" aria-controls="panel-frame" aria-selected="false" tabindex="-1">Cadre</button>
+        <button type="button" role="tab" id="tab-templates" aria-controls="panel-templates" aria-selected="false" tabindex="-1">Modèles</button>
+        <button type="button" role="tab" id="tab-history" aria-controls="panel-history" aria-selected="false" tabindex="-1">Historique</button>
+      </div>
+
+      <!-- ===== Contenu ===== -->
+      <div class="panel" role="tabpanel" id="panel-content" aria-labelledby="tab-content">
+        <div class="type-grid" role="radiogroup" aria-label="Type de contenu">
+          <label class="type"><input type="radio" name="content-type" data-bind="content.type" value="url"><span><svg class="icon"><use href="#i-link"/></svg>Lien</span></label>
+          <label class="type"><input type="radio" name="content-type" data-bind="content.type" value="text"><span><svg class="icon"><use href="#i-type"/></svg>Texte</span></label>
+          <label class="type"><input type="radio" name="content-type" data-bind="content.type" value="vcard"><span><svg class="icon"><use href="#i-user"/></svg>Contact</span></label>
+          <label class="type"><input type="radio" name="content-type" data-bind="content.type" value="event"><span><svg class="icon"><use href="#i-calendar"/></svg>Événement</span></label>
+          <label class="type"><input type="radio" name="content-type" data-bind="content.type" value="geo"><span><svg class="icon"><use href="#i-pin"/></svg>Lieu</span></label>
+          <label class="type"><input type="radio" name="content-type" data-bind="content.type" value="sepa"><span><svg class="icon"><use href="#i-euro"/></svg>Virement</span></label>
+        </div>
+
+        <div class="form" data-show="content.type=url">
+          <label class="field"><span>Adresse web</span>
+            <input type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://exemple.fr" data-bind="content.url.value"></label>
+          <p class="hint">Sans « https:// », il est ajouté automatiquement.</p>
+        </div>
+
+        <div class="form" data-show="content.type=text">
+          <label class="field"><span>Texte</span>
+            <textarea rows="5" placeholder="Le texte à afficher après le scan" data-bind="content.text.value"></textarea></label>
+        </div>
+
+        <div class="form" data-show="content.type=vcard">
+          <div class="row">
+            <label class="field"><span>Prénom</span><input type="text" autocomplete="off" data-bind="content.vcard.first"></label>
+            <label class="field"><span>Nom</span><input type="text" autocomplete="off" data-bind="content.vcard.last"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Société</span><input type="text" autocomplete="off" data-bind="content.vcard.org"></label>
+            <label class="field"><span>Fonction</span><input type="text" autocomplete="off" data-bind="content.vcard.title"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Mobile</span><input type="tel" autocomplete="off" placeholder="+33 6 12 34 56 78" data-bind="content.vcard.mobile"></label>
+            <label class="field"><span>Téléphone fixe</span><input type="tel" autocomplete="off" data-bind="content.vcard.phone"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>E-mail</span><input type="email" autocomplete="off" spellcheck="false" data-bind="content.vcard.email"></label>
+            <label class="field"><span>Site web</span><input type="url" autocomplete="off" spellcheck="false" data-bind="content.vcard.url"></label>
+          </div>
+          <label class="field"><span>Adresse</span><input type="text" autocomplete="off" placeholder="Numéro et rue" data-bind="content.vcard.street"></label>
+          <div class="row three">
+            <label class="field"><span>Code postal</span><input type="text" autocomplete="off" data-bind="content.vcard.zip"></label>
+            <label class="field"><span>Ville</span><input type="text" autocomplete="off" data-bind="content.vcard.city"></label>
+            <label class="field"><span>Pays</span><input type="text" autocomplete="off" data-bind="content.vcard.country"></label>
+          </div>
+          <label class="field"><span>Note</span><input type="text" autocomplete="off" data-bind="content.vcard.note"></label>
+        </div>
+
+        <div class="form" data-show="content.type=event">
+          <label class="field"><span>Titre</span><input type="text" autocomplete="off" data-bind="content.event.title"></label>
+          <label class="check"><input type="checkbox" data-bind="content.event.allDay"><span>Journée entière</span></label>
+          <div class="row">
+            <label class="field"><span>Début</span><input type="datetime-local" id="event-start" data-bind="content.event.start"></label>
+            <label class="field"><span>Fin</span><input type="datetime-local" id="event-end" data-bind="content.event.end"></label>
+          </div>
+          <label class="field"><span>Lieu</span><input type="text" autocomplete="off" data-bind="content.event.location"></label>
+          <label class="field"><span>Description</span><textarea rows="3" data-bind="content.event.description"></textarea></label>
+        </div>
+
+        <div class="form" data-show="content.type=geo">
+          <div class="row">
+            <label class="field"><span>Latitude</span><input type="text" inputmode="decimal" autocomplete="off" placeholder="48.8584" data-bind="content.geo.lat"></label>
+            <label class="field"><span>Longitude</span><input type="text" inputmode="decimal" autocomplete="off" placeholder="2.2945" data-bind="content.geo.lng"></label>
+          </div>
+          <button type="button" class="btn" id="btn-locate"><svg class="icon"><use href="#i-pin"/></svg><span>Utiliser ma position</span></button>
+          <div class="field"><span>Format</span>
+            <div class="seg" role="radiogroup" aria-label="Format du lieu">
+              <label><input type="radio" name="geo-format" data-bind="content.geo.format" value="geo"><span>Coordonnées (geo:)</span></label>
+              <label><input type="radio" name="geo-format" data-bind="content.geo.format" value="gmaps"><span>Lien Google Maps</span></label>
+            </div>
+          </div>
+          <p class="hint">Le lien Google Maps s’ouvre sur tous les téléphones ; « geo: » laisse l’appareil choisir son application de cartes.</p>
+        </div>
+
+        <div class="form" data-show="content.type=sepa">
+          <label class="field"><span>Bénéficiaire</span><input type="text" autocomplete="off" maxlength="70" data-bind="content.sepa.name"></label>
+          <label class="field"><span>IBAN</span><input type="text" autocomplete="off" spellcheck="false" placeholder="FR76 …" data-bind="content.sepa.iban"></label>
+          <div class="row">
+            <label class="field"><span>BIC <i>(facultatif)</i></span><input type="text" autocomplete="off" spellcheck="false" data-bind="content.sepa.bic"></label>
+            <label class="field"><span>Montant en € <i>(facultatif)</i></span><input type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" data-bind="content.sepa.amount"></label>
+          </div>
+          <label class="field"><span>Motif <i>(facultatif)</i></span><input type="text" autocomplete="off" maxlength="140" data-bind="content.sepa.remittance"></label>
+          <p class="hint">QR code de virement SEPA (norme EPC) : il préremplit un virement dans l’application bancaire de la personne qui le scanne.</p>
+        </div>
+
+        <p class="notice" id="content-error" hidden></p>
+      </div>
+
+      <!-- ===== Couleurs ===== -->
+      <div class="panel" role="tabpanel" id="panel-colors" aria-labelledby="tab-colors" hidden>
+        <h2>Modules</h2>
+        <div class="seg" role="radiogroup" aria-label="Remplissage des modules">
+          <label><input type="radio" name="dots-fill" data-bind="style.dots.fill.type" value="solid"><span>Uni</span></label>
+          <label><input type="radio" name="dots-fill" data-bind="style.dots.fill.type" value="linear"><span>Dégradé linéaire</span></label>
+          <label><input type="radio" name="dots-fill" data-bind="style.dots.fill.type" value="radial"><span>Dégradé radial</span></label>
+        </div>
+        <div class="row colors">
+          <div class="color-field" data-color="style.dots.fill.c1" data-label="Couleur"></div>
+          <div class="color-field" data-color="style.dots.fill.c2" data-label="Seconde couleur" data-show="style.dots.fill.type!=solid"></div>
+          <button type="button" class="btn icon-only" data-swap="style.dots.fill" data-show="style.dots.fill.type!=solid" aria-label="Intervertir les deux couleurs" title="Intervertir"><svg class="icon"><use href="#i-swap"/></svg></button>
+        </div>
+        <label class="field range" data-show="style.dots.fill.type=linear"><span>Angle <output></output></span>
+          <input type="range" min="0" max="360" step="5" data-bind="style.dots.fill.angle" data-unit="°"></label>
+
+        <h2>Fond</h2>
+        <div class="seg" role="radiogroup" aria-label="Remplissage du fond">
+          <label><input type="radio" name="bg-fill" data-bind="style.bg.type" value="solid"><span>Uni</span></label>
+          <label><input type="radio" name="bg-fill" data-bind="style.bg.type" value="linear"><span>Linéaire</span></label>
+          <label><input type="radio" name="bg-fill" data-bind="style.bg.type" value="radial"><span>Radial</span></label>
+          <label><input type="radio" name="bg-fill" data-bind="style.bg.type" value="none"><span>Transparent</span></label>
+        </div>
+        <div class="row colors" data-show="style.bg.type!=none">
+          <div class="color-field" data-color="style.bg.c1" data-label="Couleur"></div>
+          <div class="color-field" data-color="style.bg.c2" data-label="Seconde couleur" data-show="style.bg.type=linear|radial"></div>
+          <button type="button" class="btn icon-only" data-swap="style.bg" data-show="style.bg.type=linear|radial" aria-label="Intervertir les deux couleurs" title="Intervertir"><svg class="icon"><use href="#i-swap"/></svg></button>
+        </div>
+        <label class="field range" data-show="style.bg.type=linear"><span>Angle <output></output></span>
+          <input type="range" min="0" max="360" step="5" data-bind="style.bg.angle" data-unit="°"></label>
+        <p class="hint" data-show="style.bg.type=none">Le fond transparent est conservé en PNG, WebP, SVG et PDF. Le JPEG, lui, reçoit un fond blanc.</p>
+
+        <h2>Yeux</h2>
+        <label class="check"><input type="checkbox" data-bind="style.eyes.custom"><span>Couleurs distinctes pour les trois repères d’angle</span></label>
+        <div class="row colors" data-show="style.eyes.custom=true">
+          <div class="color-field" data-color="style.eyes.outerColor" data-label="Contour"></div>
+          <div class="color-field" data-color="style.eyes.innerColor" data-label="Centre"></div>
+        </div>
+
+        <p class="notice warn" id="contrast-warning" hidden></p>
+      </div>
+
+      <!-- ===== Formes ===== -->
+      <div class="panel" role="tabpanel" id="panel-shapes" aria-labelledby="tab-shapes" hidden>
+        <h2>Modules</h2>
+        <div class="tiles" data-tiles="dots" role="radiogroup" aria-label="Forme des modules"></div>
+        <label class="field range" data-show="style.dots.shape!=square|fluid"><span>Taille des modules <output></output></span>
+          <input type="range" min="0.5" max="1" step="0.05" data-bind="style.dots.scale" data-unit=" %" data-scale="100"></label>
+
+        <h2>Yeux — contour</h2>
+        <div class="tiles" data-tiles="eye-outer" role="radiogroup" aria-label="Forme du contour des yeux"></div>
+        <h2>Yeux — centre</h2>
+        <div class="tiles" data-tiles="eye-inner" role="radiogroup" aria-label="Forme du centre des yeux"></div>
+        <p class="hint">Un contour et un centre de même forme se lisent le mieux. Les mélanges (contour carré, centre rond…) peuvent gêner certains lecteurs, surtout sur les QR codes denses : surveillez le voyant de lecture sous l’aperçu.</p>
+
+        <h2>Lisibilité</h2>
+        <label class="field range"><span>Zone de silence (marge) <output></output></span>
+          <input type="range" min="0" max="8" step="1" data-bind="style.margin" data-unit=" modules"></label>
+        <label class="field"><span>Correction d’erreur</span>
+          <select data-bind="style.ecc">
+            <option value="auto">Automatique (élevée s’il y a un logo)</option>
+            <option value="L">L — faible (7 %)</option>
+            <option value="M">M — moyenne (15 %)</option>
+            <option value="Q">Q — renforcée (25 %)</option>
+            <option value="H">H — élevée (30 %)</option>
+          </select></label>
+        <p class="hint">Plus la correction est élevée, plus le QR code tolère un logo ou une salissure — mais plus il est dense.</p>
+      </div>
+
+      <!-- ===== Logo ===== -->
+      <div class="panel" role="tabpanel" id="panel-logo" aria-labelledby="tab-logo" hidden>
+        <div class="dropzone" id="logo-drop">
+          <img id="logo-thumb" class="checker" alt="Logo actuel" hidden>
+          <div class="dropzone-text">
+            <strong id="logo-title">Ajouter un logo</strong>
+            <span>PNG, JPEG, SVG ou WebP — glissez l’image ici ou choisissez un fichier.</span>
+          </div>
+          <div class="dropzone-actions">
+            <label class="btn"><svg class="icon"><use href="#i-image"/></svg><span>Choisir…</span>
+              <input type="file" id="logo-file" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif" class="visually-hidden"></label>
+            <button type="button" class="btn danger" id="logo-remove" hidden><svg class="icon"><use href="#i-trash"/></svg><span>Retirer</span></button>
+          </div>
+        </div>
+        <div class="group" data-show="style.logo.src=set">
+          <label class="field range"><span>Taille <output></output></span>
+            <input type="range" min="10" max="32" step="1" data-bind="style.logo.size" data-unit=" %"></label>
+          <label class="field range"><span>Marge autour du logo <output></output></span>
+            <input type="range" min="0" max="3" step="0.5" data-bind="style.logo.pad" data-unit=" modules"></label>
+          <div class="field"><span>Forme de la zone</span>
+            <div class="seg" role="radiogroup" aria-label="Forme de la zone du logo">
+              <label><input type="radio" name="logo-shape" data-bind="style.logo.shape" value="square"><span>Carrée</span></label>
+              <label><input type="radio" name="logo-shape" data-bind="style.logo.shape" value="rounded"><span>Arrondie</span></label>
+              <label><input type="radio" name="logo-shape" data-bind="style.logo.shape" value="circle"><span>Ronde</span></label>
+            </div>
+          </div>
+          <label class="check"><input type="checkbox" data-bind="style.logo.clear"><span>Dégager les modules derrière le logo</span></label>
+          <label class="check"><input type="checkbox" data-bind="style.logo.plate"><span>Fond coloré sous le logo</span></label>
+          <div class="row colors" data-show="style.logo.plate=true">
+            <div class="color-field" data-color="style.logo.plateColor" data-label="Couleur du fond"></div>
+          </div>
+          <p class="hint">Un logo masque une partie du code : gardez-le sous 25 % et vérifiez le voyant de lecture sous l’aperçu.</p>
+        </div>
+      </div>
+
+      <!-- ===== Cadre ===== -->
+      <div class="panel" role="tabpanel" id="panel-frame" aria-labelledby="tab-frame" hidden>
+        <div class="seg wrap" role="radiogroup" aria-label="Type de cadre">
+          <label><input type="radio" name="frame-style" data-bind="style.frame.style" value="none"><span>Aucun</span></label>
+          <label><input type="radio" name="frame-style" data-bind="style.frame.style" value="border"><span>Bordure</span></label>
+          <label><input type="radio" name="frame-style" data-bind="style.frame.style" value="bottom"><span>Légende en bas</span></label>
+          <label><input type="radio" name="frame-style" data-bind="style.frame.style" value="top"><span>Légende en haut</span></label>
+          <label><input type="radio" name="frame-style" data-bind="style.frame.style" value="label"><span>Texte seul</span></label>
+        </div>
+
+        <div class="group" data-show="style.frame.style=bottom|top|label">
+          <label class="field"><span>Texte</span><input type="text" autocomplete="off" maxlength="60" data-bind="style.frame.text"></label>
+          <div class="field"><span>Police</span>
+            <div class="seg" role="radiogroup" aria-label="Police du texte">
+              <label><input type="radio" name="frame-font" data-bind="style.frame.font" value="sans"><span>Linéale</span></label>
+              <label><input type="radio" name="frame-font" data-bind="style.frame.font" value="serif"><span class="f-serif">Sérif</span></label>
+              <label><input type="radio" name="frame-font" data-bind="style.frame.font" value="mono"><span class="f-mono">Mono</span></label>
+            </div>
+          </div>
+          <div class="row checks">
+            <label class="check"><input type="checkbox" data-bind="style.frame.bold"><span>Gras</span></label>
+            <label class="check"><input type="checkbox" data-bind="style.frame.upper"><span>Majuscules</span></label>
+          </div>
+          <label class="field range"><span>Taille du texte <output></output></span>
+            <input type="range" min="1.5" max="6" step="0.25" data-bind="style.frame.size" data-unit=" modules"></label>
+        </div>
+
+        <div class="row colors" data-show="style.frame.style!=none">
+          <div class="color-field" data-color="style.frame.color" data-label="Couleur du cadre" data-label-alt="Couleur du texte" data-alt-when="style.frame.style=label"></div>
+          <div class="color-field" data-color="style.frame.textColor" data-label="Couleur du texte" data-show="style.frame.style=bottom|top"></div>
+        </div>
+        <label class="field range" data-show="style.frame.style=border|bottom|top"><span>Épaisseur <output></output></span>
+          <input type="range" min="0.5" max="4" step="0.25" data-bind="style.frame.thickness" data-unit=" modules"></label>
+        <label class="field range"><span>Coins arrondis <output></output></span>
+          <input type="range" min="0" max="8" step="0.5" data-bind="style.frame.radius" data-unit=" modules"></label>
+      </div>
+
+      <!-- ===== Modèles ===== -->
+      <div class="panel" role="tabpanel" id="panel-templates" aria-labelledby="tab-templates" hidden>
+        <h2>Enregistrer le style actuel</h2>
+        <form class="inline-form" id="template-form">
+          <input type="text" id="template-name" placeholder="Nom du modèle" maxlength="40" autocomplete="off" aria-label="Nom du modèle" required>
+          <button type="submit" class="btn primary"><svg class="icon"><use href="#i-bookmark"/></svg><span>Enregistrer</span></button>
+        </form>
+        <p class="hint">Un modèle retient les couleurs, les formes, le logo et le cadre — pas le contenu.</p>
+        <h2>Mes modèles</h2>
+        <div class="cards" id="my-templates"></div>
+        <h2>Prêts à l’emploi</h2>
+        <div class="cards" id="builtin-templates"></div>
+      </div>
+
+      <!-- ===== Historique ===== -->
+      <div class="panel" role="tabpanel" id="panel-history" aria-labelledby="tab-history" hidden>
+        <p class="hint">Chaque QR code exporté ou enregistré est conservé ici, sur cet appareil uniquement.</p>
+        <input type="search" class="search" id="history-search" placeholder="Rechercher dans l’historique" aria-label="Rechercher dans l’historique" autocomplete="off">
+        <div class="history" id="history-list"></div>
+        <div class="row actions">
+          <button type="button" class="btn" id="btn-backup"><svg class="icon"><use href="#i-download"/></svg><span>Sauvegarder mes données</span></button>
+          <label class="btn"><svg class="icon"><use href="#i-upload"/></svg><span>Restaurer…</span>
+            <input type="file" id="restore-file" accept="application/json,.json" class="visually-hidden"></label>
+          <button type="button" class="btn danger" id="btn-clear-history"><svg class="icon"><use href="#i-trash"/></svg><span>Vider l’historique</span></button>
+        </div>
+        <p class="hint">La sauvegarde (modèles + historique) est un fichier à restaurer sur un autre appareil pour y retrouver vos créations.</p>
+      </div>
+    </section>
+
+    <aside class="stage" aria-label="Aperçu et export">
+      <div class="preview-card">
+        <div class="preview checker" id="preview" role="img" aria-label="Aperçu du QR code"></div>
+        <div class="preview-meta">
+          <span class="badge" id="scan-badge" data-state="idle"><svg class="icon"><use href="#i-check"/></svg><span id="scan-text">—</span></span>
+          <span class="qr-info" id="qr-info"></span>
+        </div>
+      </div>
+
+      <div class="export-card">
+        <h2>Exporter</h2>
+        <div class="seg" role="radiogroup" aria-label="Format d’export">
+          <label><input type="radio" name="export-format" data-bind="export.format" value="png"><span>PNG</span></label>
+          <label><input type="radio" name="export-format" data-bind="export.format" value="svg"><span>SVG</span></label>
+          <label><input type="radio" name="export-format" data-bind="export.format" value="jpeg"><span>JPEG</span></label>
+          <label><input type="radio" name="export-format" data-bind="export.format" value="webp"><span>WebP</span></label>
+          <label><input type="radio" name="export-format" data-bind="export.format" value="pdf"><span>PDF</span></label>
+        </div>
+
+        <label class="field range" data-show="export.format!=pdf"><span>Largeur <output></output></span>
+          <input type="range" min="128" max="4096" step="32" data-bind="export.px" data-unit=" px"></label>
+        <label class="field range" data-show="export.format=jpeg|webp"><span>Qualité <output></output></span>
+          <input type="range" min="50" max="100" step="1" data-bind="export.quality" data-unit=" %"></label>
+
+        <div class="row" data-show="export.format=pdf">
+          <label class="field"><span>Largeur du QR (mm)</span>
+            <input type="number" min="10" max="1000" step="1" data-bind="export.mm"></label>
+          <label class="field"><span>Page</span>
+            <select data-bind="export.page">
+              <option value="fit">Ajustée au QR code</option>
+              <option value="a4">A4, centré</option>
+              <option value="a5">A5, centré</option>
+              <option value="a6">A6, centré</option>
+              <option value="letter">Letter, centré</option>
+            </select></label>
+        </div>
+        <p class="hint" data-show="export.format=pdf">PDF vectoriel : net à toutes les tailles d’impression.</p>
+
+        <label class="field"><span>Nom du fichier</span>
+          <input type="text" autocomplete="off" spellcheck="false" id="export-name" data-bind="export.name"></label>
+
+        <div class="export-actions">
+          <button type="button" class="btn primary" id="btn-download"><svg class="icon"><use href="#i-download"/></svg><span>Télécharger</span></button>
+          <button type="button" class="btn" id="btn-copy"><svg class="icon"><use href="#i-copy"/></svg><span>Copier</span></button>
+          <button type="button" class="btn" id="btn-share" hidden><svg class="icon"><use href="#i-share"/></svg><span>Partager</span></button>
+          <button type="button" class="btn" id="btn-save"><svg class="icon"><use href="#i-bookmark"/></svg><span>Enregistrer</span></button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="foot">CutieQR fonctionne entièrement dans votre navigateur : rien n’est envoyé sur un serveur.</footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/qrcode.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

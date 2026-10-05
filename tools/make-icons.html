@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CutieQR — génération des icônes</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 24px; background: #f4f2ee; color: #1c1b19; }
+    .grid { display: flex; flex-wrap: wrap; gap: 20px; align-items: end; }
+    figure { margin: 0; text-align: center; }
+    img { display: block; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; border-radius: 8px; }
+    figcaption a { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Icônes de CutieQR</h1>
+  <p>Source unique : <code>icons/icon.svg</code>. Servez le dossier du projet, ouvrez cette page puis
+     téléchargez chaque PNG dans <code>icons/</code>.</p>
+  <div class="grid" id="out"></div>
+  <script>
+    // Variantes : « any » garde les coins arrondis ; les icônes pleines (maskable
+    // Android, Apple) remplissent le carré et réduisent le motif pour la zone sûre.
+    const VARIANTS = [
+      { file: 'icon-192.png', size: 192, full: false, scale: 1 },
+      { file: 'icon-512.png', size: 512, full: false, scale: 1 },
+      { file: 'icon-maskable-512.png', size: 512, full: true, scale: 0.8 },
+      { file: 'icon-180.png', size: 180, full: true, scale: 0.95 },
+    ];
+
+    function variantSVG(source, { full, scale }) {
+      let svg = source;
+      if (full) svg = svg.replace(/(<rect width="64" height="64") rx="[\d.]+"/, '$1');
+      if (scale !== 1) {
+        svg = svg.replace(/(<rect width="64" height="64"[^>]*\/>)([\s\S]*)(<\/svg>)/,
+          `$1<g transform="translate(32 32) scale(${scale}) translate(-32 -32)">$2</g>$3`);
+      }
+      return svg;
+    }
+
+    function rasterize(svg, size) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = c.height = size;
+          c.getContext('2d').drawImage(img, 0, 0, size, size);
+          c.toBlob(resolve, 'image/png');
+        };
+        img.onerror = reject;
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    }
+
+    (async () => {
+      const source = await (await fetch('../icons/icon.svg', { cache: 'no-store' })).text();
+      const out = document.getElementById('out');
+      window.iconBlobs = {};
+      for (const v of VARIANTS) {
+        const blob = await rasterize(variantSVG(source, v), v.size);
+        window.iconBlobs[v.file] = blob;
+        const url = URL.createObjectURL(blob);
+        const fig = document.createElement('figure');
+        fig.innerHTML = `<img src="${url}" width="${Math.min(v.size, 192)}" alt=""><figcaption><a download="${v.file}" href="${url}">${v.file}</a></figcaption>`;
+        out.append(fig);
+      }
+      document.title += ' — prêtes';
+    })();
+  </script>
+</body>
+</html>
