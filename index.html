@@ -8,9 +8,12 @@
   <meta name="description" content="Créez des QR codes personnalisés (couleurs, formes, logo, cadre) et exportez-les en PNG, SVG, JPEG, WebP ou PDF. Tout reste sur votre appareil.">
   <meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#071410" media="(prefers-color-scheme: dark)">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest?v=4">
+  <!-- ?v= : change l'adresse des icônes à chaque nouveau logo, sinon les navigateurs
+       gardent l'ancien favicon en cache pendant des semaines. -->
+  <link rel="icon" href="icons/icon.svg?v=4" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon-32.png?v=4" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/icon-180.png?v=4">
   <meta name="apple-mobile-web-app-title" content="QtQr">
   <meta name="application-name" content="CutieQR">
   <link rel="stylesheet" href="css/kit/juritel-design.css">
@@ -52,11 +55,11 @@
     <div class="brand-bar">
       <span class="logo" aria-hidden="true">
         <svg viewBox="0 0 64 64">
-          <g transform="translate(32 32) scale(.8) translate(-31.75 -32)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="22" cy="32" r="12.5" stroke-width="6"/>
-            <path d="M26.5 36.5 36 46" stroke-width="6"/>
-            <path d="M47 12v13.5Q47 30 51.5 30M43.5 18H51" stroke-width="4"/>
-            <path d="M47 52V35h4a4.25 4.25 0 0 1 0 8.5h-4m3.5 0L55 52" stroke-width="4"/>
+          <g transform="translate(32 32) scale(.86) translate(-29.7 -32.25)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="22" cy="32" r="13" stroke-width="6"/>
+            <path d="M27 37 35.5 45.5" stroke-width="6"/>
+            <path d="M45 18.5v7.75q0 2.25 3 2.25M42.25 22.25h7.25" stroke-width="4"/>
+            <path d="M44.5 45.5v-10h4.2a3 3 0 0 1 0 6h-4.2m3.2 0 4 4" stroke-width="4"/>
           </g>
         </svg>
       </span>

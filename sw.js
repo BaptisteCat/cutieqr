@@ -1,7 +1,7 @@
 // Service worker : met toute l'application en cache pour un usage hors ligne.
 // Stratégie « stale-while-revalidate » : réponse immédiate depuis le cache, mise à
 // jour en arrière-plan. Changer VERSION à chaque publication purge l'ancien cache.
-const VERSION = 'cutieqr-v3';
+const VERSION = 'cutieqr-v4';
 
 const ASSETS = [
   './',
@@ -32,6 +32,7 @@ const ASSETS = [
   'vendor/svg2pdf.umd.min.js',
   'icons/icon.svg',
   'icons/icon-180.png',
+  'icons/favicon-32.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
