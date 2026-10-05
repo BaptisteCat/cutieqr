@@ -23,6 +23,10 @@ aucun contenu n'est envoyé sur un serveur, et l'application fonctionne hors lig
 - Cadre : bordure, légende en haut ou en bas, ou texte seul ; police, gras, majuscules, coins arrondis
 - Zone de silence et niveau de correction d'erreur réglables (automatiquement élevé avec un logo)
 
+**Aperçu**
+- Scène automatique : un QR code clair sur fond transparent s'affiche sur fond sombre,
+  un QR code sombre transparent sur damier ; choix manuel Auto / Damier / Clair / Sombre
+
 **Fiabilité**
 - Voyant de lecture : chaque modification est relue par un décodeur intégré (jsQR)
 - Alerte de contraste insuffisant, de QR code inversé ou de fond transparent
@@ -36,17 +40,38 @@ aucun contenu n'est envoyé sur un serveur, et l'application fonctionne hors lig
 **Organisation**
 - Modèles de style : 10 fournis, et les vôtres (couleurs, formes, logo, cadre)
 - Historique des QR codes exportés ou enregistrés, avec recherche ; réouverture et mise à jour
-- Sauvegarde et restauration (fichier JSON) pour retrouver ses créations sur un autre appareil
+- Synchronisation entre appareils par un Gist GitHub secret
+- Sauvegarde et restauration (fichier JSON)
 - Brouillon conservé automatiquement, thème clair/sombre
 
-Les modèles et l'historique sont stockés **sur chaque appareil** (IndexedDB). Pour passer d'un
-appareil à l'autre, utilisez « Sauvegarder mes données » puis « Restaurer… » dans l'onglet Historique.
+## Synchroniser ses appareils
+
+Les modèles et l'historique sont stockés sur chaque appareil (IndexedDB). Pour les retrouver
+partout, onglet **Historique → Synchronisation entre appareils** :
+
+1. « Créer un jeton sur GitHub » ouvre la page de création d'un jeton déjà limité au droit `gist`.
+2. Collez le jeton dans CutieQR, puis « Activer la synchronisation ». Un Gist **secret** nommé
+   `cutieqr-sync.json` est créé (ou retrouvé s'il existe déjà).
+3. Recommencez sur chaque appareil, avec le même jeton ou un autre jeton du même compte.
+
+La synchronisation se fait ensuite seule : après chaque enregistrement, au retour sur l'application
+et au retour de la connexion. En cas de modification sur deux appareils, la plus récente l'emporte,
+élément par élément ; les suppressions se propagent. Le jeton reste sur l'appareil.
+
+Un Gist secret n'est pas listé publiquement, mais quiconque obtient son adresse peut le lire :
+n'y synchronisez que des données que vous accepteriez de voir circuler.
 
 ## Installer l'application
 
 - **Ordinateur (Chrome, Edge)** : bouton « Installer » dans l'en-tête, ou icône d'installation de la barre d'adresse.
 - **Android** : menu du navigateur → « Ajouter à l'écran d'accueil » / « Installer l'application ».
 - **iPhone, iPad** : Safari → Partager → « Sur l'écran d'accueil ».
+
+## Esthétique
+
+L'interface reprend la charte **Juritel** : jetons `--jt-*`, polices auto-hébergées (Inter,
+Playfair Display, Monsieur La Doulaise), thèmes clair et sombre. `css/kit/` est une copie
+**non modifiée** du kit `juritel-kit` ; `css/styles.css` ne se sert que de ses jetons.
 
 ## Développement
 
@@ -67,6 +92,8 @@ puis ouvrir http://localhost:8000. Le service worker (hors ligne) n'est activé 
 | `js/render.js` | Moteur de rendu : matrice QR + style → SVG |
 | `js/export.js` | Rastérisation, PDF, presse-papiers, vérification de lecture |
 | `js/store.js` | Stockage local (IndexedDB) |
+| `js/sync.js` | Synchronisation par Gist : fusion et API GitHub (`node tools/test-sync.mjs` pour les tests) |
+| `css/kit/` | Kit Juritel (jetons, polices), copié tel quel |
 | `js/presets.js` | Modèles fournis |
 | `sw.js`, `manifest.webmanifest` | Application installable et hors ligne |
 | `icons/icon.svg` | Logo source ; `tools/make-icons.html` en tire les PNG |

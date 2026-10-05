@@ -1,12 +1,22 @@
 // Service worker : met toute l'application en cache pour un usage hors ligne.
 // Stratégie « stale-while-revalidate » : réponse immédiate depuis le cache, mise à
 // jour en arrière-plan. Changer VERSION à chaque publication purge l'ancien cache.
-const VERSION = 'cutieqr-v1';
+const VERSION = 'cutieqr-v2';
 
 const ASSETS = [
   './',
   'index.html',
   'manifest.webmanifest',
+  'css/kit/juritel-design.css',
+  'css/kit/fonts.css',
+  'css/kit/fonts/inter-latin.woff2',
+  'css/kit/fonts/inter-latin-ext.woff2',
+  'css/kit/fonts/playfair-display-italic-latin.woff2',
+  'css/kit/fonts/playfair-display-italic-latin-ext.woff2',
+  'css/kit/fonts/monsieur-la-doulaise-latin.woff2',
+  'css/kit/fonts/monsieur-la-doulaise-latin-ext.woff2',
+  'css/kit/fonts/bodoni-moda-latin.woff2',
+  'css/kit/fonts/bodoni-moda-latin-ext.woff2',
   'css/styles.css',
   'js/app.js',
   'js/export.js',
@@ -14,6 +24,7 @@ const ASSETS = [
   'js/presets.js',
   'js/render.js',
   'js/store.js',
+  'js/sync.js',
   'js/theme.js',
   'vendor/qrcode.js',
   'vendor/jsQR.js',

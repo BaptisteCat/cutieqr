@@ -65,7 +65,8 @@ const canvasToBlob = (canvas, type, quality) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Export impossible à cette taille.'))), type, quality));
 
 // render(widthPx) → { svg, width, height } ; settings = { format, px, quality, mm, page }
-export async function exportBlob(render, settings) {
+// jpegBackdrop : teinte posée sous un JPEG (format sans transparence).
+export async function exportBlob(render, settings, { jpegBackdrop = '#ffffff' } = {}) {
   const { format } = settings;
   if (format === 'svg') {
     return new Blob([render(settings.px).svg], { type: MIME.svg });
@@ -75,8 +76,8 @@ export async function exportBlob(render, settings) {
   const r = render(settings.px);
   const w = Math.round(settings.px);
   const h = Math.round((settings.px * r.height) / r.width);
-  // Le JPEG n'a pas de transparence (fond transparent, coins arrondis) : fond blanc.
-  const canvas = await svgToCanvas(r.svg, w, h, { backdrop: format === 'jpeg' ? '#ffffff' : null });
+  // Le JPEG n'a pas de transparence (fond transparent, coins arrondis) : on pose une teinte dessous.
+  const canvas = await svgToCanvas(r.svg, w, h, { backdrop: format === 'jpeg' ? jpegBackdrop : null });
   const blob = await canvasToBlob(canvas, MIME[format], settings.quality / 100);
   if (blob.type !== MIME[format]) throw new Error(`Ce navigateur ne sait pas exporter en ${format.toUpperCase()}.`);
   return blob;

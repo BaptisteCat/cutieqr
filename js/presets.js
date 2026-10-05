@@ -4,6 +4,14 @@
 export const PRESETS = [
   { id: 'p-classique', name: 'Classique', style: {} },
   {
+    id: 'p-sapin', name: 'Sapin',
+    style: {
+      dots: { shape: 'fluid', fill: { type: 'linear', c1: '#113e2f', c2: '#286e55', angle: 135 } },
+      eyes: { outer: 'rounded', inner: 'rounded' },
+      bg: { type: 'solid', c1: '#fffefb' },
+    },
+  },
+  {
     id: 'p-encre', name: 'Encre',
     style: {
       dots: { shape: 'fluid', fill: { type: 'solid', c1: '#1b1f3b' } },

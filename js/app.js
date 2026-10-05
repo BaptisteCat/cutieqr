@@ -6,6 +6,7 @@ import {
 import { exportBlob, download, copyImage, canCopyImage, canShareFiles, scanCheck, EXT } from './export.js';
 import * as store from './store.js';
 import { PRESETS } from './presets.js';
+import * as sync from './sync.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -33,7 +34,10 @@ function sanitizeExport(raw) {
   };
 }
 
-const state = { content: defaultContent(), style: defaultStyle(), export: defaultExport() };
+const STAGES = ['auto', 'checker', 'light', 'dark'];
+const defaultView = () => ({ stage: 'auto' });
+
+const state = { content: defaultContent(), style: defaultStyle(), export: defaultExport(), view: defaultView() };
 // Entrée d'historique en cours d'édition : un nouvel export la met à jour au lieu d'en créer une autre.
 let session = { id: null, createdAt: null };
 
@@ -277,12 +281,33 @@ function scheduleRender() {
   frameTimer = setTimeout(run, 80);
 }
 
+// Teinte de la scène sombre (--stage-dark), pour la vérification de lecture.
+const STAGE_DARK = '#0b1a15';
+
+const modulesAreLight = (style) => {
+  const f = style.dots.fill;
+  return (f.type === 'solid' ? luminance(f.c1) : (luminance(f.c1) + luminance(f.c2)) / 2) > 0.45;
+};
+
+// Scène de l'aperçu. En automatique : un QR code clair sur fond transparent passe
+// sur scène sombre (sinon il serait invisible), un QR code sombre transparent sur
+// damier, et un QR code à fond plein sur la scène « studio » du thème.
+function stageFor(style, pref = 'auto') {
+  if (pref !== 'auto') return pref;
+  if (style.bg.type === 'none') return modulesAreLight(style) ? 'dark' : 'checker';
+  return 'studio';
+}
+
+// Surface sur laquelle on suppose le QR code posé (fond transparent seulement).
+const surfaceFor = (style) => (style.bg.type === 'none' && stageFor(style, state.view.stage) === 'dark' ? STAGE_DARK : '#ffffff');
+
 function renderNow() {
   syncUI();
   current = compute();
   const { matrix, sample, error } = current;
   const preview = $('#preview');
   preview.innerHTML = renderSVG(matrix, state.style).svg;
+  preview.dataset.stage = stageFor(state.style, state.view.stage);
   preview.classList.toggle('is-sample', sample);
 
   const err = $('#content-error');
@@ -306,17 +331,22 @@ function updateContrastWarning() {
   if (s.dots.fill.type !== 'solid') fg.push(s.dots.fill.c2);
   if (s.eyes.custom) fg.push(s.eyes.outerColor, s.eyes.innerColor);
   const transparent = s.bg.type === 'none';
-  const bg = transparent ? ['#ffffff'] : s.bg.type === 'solid' ? [s.bg.c1] : [s.bg.c1, s.bg.c2];
+  const surface = surfaceFor(s);
+  const bg = transparent ? [surface] : s.bg.type === 'solid' ? [s.bg.c1] : [s.bg.c1, s.bg.c2];
   let min = Infinity;
   for (const a of fg) for (const b of bg) min = Math.min(min, contrastRatio(a, b));
   const msgs = [];
   if (min < 3) {
-    msgs.push(`Contraste faible (${min.toFixed(1).replace('.', ',')}:1) entre les modules et le fond${transparent ? ' blanc' : ''} : la lecture risque d’échouer. Visez au moins 4:1.`);
+    msgs.push(`Contraste faible (${min.toFixed(1).replace('.', ',')}:1) entre les modules et ${transparent ? (surface === STAGE_DARK ? 'une surface sombre' : 'une surface blanche') : 'le fond'} : la lecture risque d’échouer. Visez au moins 4:1.`);
   }
   if (luminance(fg[0]) > luminance(bg[0])) {
     msgs.push('Modules plus clairs que le fond : certains lecteurs ne lisent pas les QR codes inversés.');
   }
-  if (transparent) msgs.push('Fond transparent : posez le QR code sur une surface claire et unie.');
+  if (transparent) {
+    msgs.push(surface === STAGE_DARK
+      ? 'Fond transparent : posez ce QR code clair sur une surface sombre et unie.'
+      : 'Fond transparent : posez le QR code sur une surface claire et unie.');
+  }
   const el = $('#contrast-warning');
   el.hidden = !msgs.length;
   el.textContent = msgs.join(' ');
@@ -339,9 +369,10 @@ function scheduleScan() {
   scanTimer = setTimeout(async () => {
     const { matrix, data } = current;
     const style = clone(state.style);
+    const surface = surfaceFor(style);
     let ok = false;
     try {
-      ok = await scanCheck((w) => renderSVG(matrix, style, { width: w }), data, '#ffffff');
+      ok = await scanCheck((w) => renderSVG(matrix, style, { width: w }), data, surface);
     } catch {
       if (token === scanToken) setBadge('idle', 'Vérification indisponible');
       return;
@@ -358,7 +389,7 @@ let draftTimer = 0;
 function saveDraftSoon() {
   clearTimeout(draftTimer);
   draftTimer = setTimeout(() => {
-    store.kvSet('draft', { content: state.content, style: state.style, export: state.export, session }).catch(() => {});
+    store.kvSet('draft', { content: state.content, style: state.style, export: state.export, view: state.view, session }).catch(() => {});
   }, 500);
 }
 
@@ -463,6 +494,11 @@ function fileName(format) {
   return `${base}.${EXT[format]}`;
 }
 
+// Un JPEG de QR code clair sur fond transparent reçoit un fond sombre, sinon blanc.
+const exportOptions = () => ({
+  jpegBackdrop: state.style.bg.type === 'none' && modulesAreLight(state.style) ? STAGE_DARK : '#ffffff',
+});
+
 function renderer() {
   const { matrix } = current;
   const style = clone(state.style);
@@ -488,7 +524,7 @@ function setupExport() {
   $('#btn-download').addEventListener('click', (e) => withBusy(e.currentTarget, async () => {
     if (current.sample) return;
     const settings = { ...state.export };
-    const blob = await exportBlob(renderer(), settings);
+    const blob = await exportBlob(renderer(), settings, exportOptions());
     download(blob, fileName(settings.format));
     toast(`${formatName()} téléchargé`);
     await saveToHistory({ silent: true });
@@ -509,7 +545,7 @@ function setupExport() {
   share.addEventListener('click', (e) => withBusy(e.currentTarget, async () => {
     if (current.sample) return;
     const settings = { ...state.export };
-    const blob = await exportBlob(renderer(), settings);
+    const blob = await exportBlob(renderer(), settings, exportOptions());
     const file = new File([blob], fileName(settings.format), { type: blob.type });
     await navigator.share({ files: [file], title: describeContent(state.content) });
     await saveToHistory({ silent: true });
@@ -555,6 +591,7 @@ async function saveToHistory({ silent }) {
   const isNew = !session.id;
   session = { id: entry.id, createdAt: entry.createdAt };
   saveDraftSoon();
+  scheduleSync();
   if (!silent) toast(isNew ? 'Ajouté à l’historique' : 'Historique mis à jour');
   if (!$('#panel-history').hidden) renderHistory();
 }
@@ -583,7 +620,8 @@ async function renderHistory() {
     row.className = 'history-item' + (it.id === session.id ? ' current' : '');
 
     const thumb = document.createElement('div');
-    thumb.className = 'history-thumb checker';
+    thumb.className = 'history-thumb';
+    thumb.dataset.stage = stageFor(style);
     thumb.innerHTML = thumbSVG(content, style);
 
     const text = document.createElement('div');
@@ -612,10 +650,20 @@ async function renderHistory() {
     const del = iconButton(null, 'i-trash', 'btn sm icon-only danger', `Supprimer « ${title.textContent} »`);
     del.addEventListener('click', async () => {
       await store.remove('history', it.id);
+      await setTombstones('history', [it.id], true);
       if (session.id === it.id) session = { id: null, createdAt: null };
       renderHistory();
+      scheduleSync();
       toast('Supprimé de l’historique', {
-        action: { label: 'Annuler', run: async () => { await store.put('history', it); renderHistory(); } },
+        action: {
+          label: 'Annuler',
+          run: async () => {
+            await store.put('history', it);
+            await setTombstones('history', [it.id], false);
+            renderHistory();
+            scheduleSync();
+          },
+        },
       });
     });
     actions.append(open, del);
@@ -648,7 +696,8 @@ function templateCard(name, style, onApply, onDelete) {
   card.className = 'card';
   const thumb = document.createElement('button');
   thumb.type = 'button';
-  thumb.className = 'card-thumb checker';
+  thumb.className = 'card-thumb';
+  thumb.dataset.stage = stageFor(style);
   thumb.setAttribute('aria-label', `Appliquer le modèle « ${name} »`);
   thumb.title = 'Appliquer ce modèle';
   thumb.innerHTML = thumbSVG(null, style);
@@ -688,9 +737,19 @@ async function renderTemplates() {
       toast(`Modèle « ${name} » appliqué`);
     }, async () => {
       await store.remove('templates', t.id);
+      await setTombstones('templates', [t.id], true);
       renderTemplates();
+      scheduleSync();
       toast('Modèle supprimé', {
-        action: { label: 'Annuler', run: async () => { await store.put('templates', t); renderTemplates(); } },
+        action: {
+          label: 'Annuler',
+          run: async () => {
+            await store.put('templates', t);
+            await setTombstones('templates', [t.id], false);
+            renderTemplates();
+            scheduleSync();
+          },
+        },
       });
     }));
   }
@@ -723,6 +782,7 @@ function setupTemplates() {
         id: existing ? existing.id : store.newId(),
         name,
         createdAt: existing ? existing.createdAt : Date.now(),
+        updatedAt: Date.now(),
         style: clone(state.style),
       });
     } catch {
@@ -731,6 +791,7 @@ function setupTemplates() {
     }
     input.value = '';
     renderTemplates();
+    scheduleSync();
     toast(existing ? `Modèle « ${name} » remplacé` : `Modèle « ${name} » enregistré`);
   });
 }
@@ -767,36 +828,32 @@ function setupBackup() {
       toast('Ce fichier n’est pas une sauvegarde CutieQR.', { error: true });
       return;
     }
-    const validId = (id) => typeof id === 'string' && /^[\w-]{1,64}$/.test(id);
-    const stamp = (v) => (Number.isFinite(v) ? v : Date.now());
     let count = 0;
-    for (const t of Array.isArray(data.templates) ? data.templates : []) {
-      if (!t || !validId(t.id) || typeof t.name !== 'string') continue;
-      await store.put('templates', { id: t.id, name: t.name.slice(0, 40), createdAt: stamp(t.createdAt), style: mergeStyle(t.style) });
+    for (const t of cleanList(data.templates, cleanTemplate)) {
+      await store.put('templates', t);
+      await setTombstones('templates', [t.id], false);
       count++;
     }
-    for (const h of Array.isArray(data.history) ? data.history : []) {
-      if (!h || !validId(h.id)) continue;
-      const content = sanitizeContent(h.content);
-      await store.put('history', {
-        id: h.id,
-        createdAt: stamp(h.createdAt),
-        updatedAt: stamp(h.updatedAt),
-        type: content.type,
-        label: describeContent(content),
-        content,
-        style: mergeStyle(h.style),
-      });
+    for (const h of cleanList(data.history, cleanHistory)) {
+      await store.put('history', h);
+      await setTombstones('history', [h.id], false);
       count++;
     }
     renderHistory();
     renderTemplates();
+    scheduleSync();
     toast(count ? `${count} élément(s) restauré(s)` : 'La sauvegarde ne contenait aucun élément.');
   });
 
   $('#btn-clear-history').addEventListener('click', async () => {
-    if (!confirm('Supprimer tout l’historique de cet appareil ? Les modèles sont conservés.')) return;
+    const synced = Boolean(sync.loadConfig());
+    if (!confirm(synced
+      ? 'Supprimer tout l’historique, sur cet appareil et sur vos appareils synchronisés ? Les modèles sont conservés.'
+      : 'Supprimer tout l’historique de cet appareil ? Les modèles sont conservés.')) return;
+    const ids = (await store.getAll('history')).map((h) => h.id);
     await store.clear('history');
+    await setTombstones('history', ids, true);
+    scheduleSync();
     session = { id: null, createdAt: null };
     saveDraftSoon();
     renderHistory();
@@ -804,6 +861,212 @@ function setupBackup() {
   });
 
   $('#history-search').addEventListener('input', () => renderHistory());
+}
+
+/* ============================== Validation partagée ============================== */
+
+const validId = (id) => typeof id === 'string' && /^[\w-]{1,64}$/.test(id);
+const stampOr = (v, fallback) => (Number.isFinite(v) ? v : fallback);
+
+// Modèle ou entrée d'historique venus de l'extérieur (sauvegarde, Gist) : on ne
+// reprend que des champs connus et validés.
+function cleanTemplate(t) {
+  if (!t || !validId(t.id) || typeof t.name !== 'string') return null;
+  const createdAt = stampOr(t.createdAt, 0);
+  return { id: t.id, name: t.name.slice(0, 40), createdAt, updatedAt: stampOr(t.updatedAt, createdAt), style: mergeStyle(t.style) };
+}
+function cleanHistory(h) {
+  if (!h || !validId(h.id)) return null;
+  const content = sanitizeContent(h.content);
+  const createdAt = stampOr(h.createdAt, 0);
+  return {
+    id: h.id, createdAt, updatedAt: stampOr(h.updatedAt, createdAt),
+    type: content.type, label: describeContent(content), content, style: mergeStyle(h.style),
+  };
+}
+const cleanList = (list, fn) => (Array.isArray(list) ? list.map(fn).filter(Boolean) : []);
+function cleanTombstones(raw) {
+  const out = {};
+  if (raw && typeof raw === 'object') {
+    for (const [k, v] of Object.entries(raw)) {
+      if (/^(templates|history):[\w-]{1,64}$/.test(k) && Number.isFinite(v)) out[k] = v;
+    }
+  }
+  return out;
+}
+
+// Une suppression laisse une trace datée, pour qu'elle se propage aux autres appareils.
+async function setTombstones(storeName, ids, deleted) {
+  const t = cleanTombstones(await store.kvGet('tombstones'));
+  const now = Date.now();
+  for (const id of ids) {
+    if (deleted) t[`${storeName}:${id}`] = now;
+    else delete t[`${storeName}:${id}`];
+  }
+  await store.kvSet('tombstones', t);
+}
+
+/* ============================== Synchronisation ============================== */
+
+let syncBusy = false;
+let syncAgain = false;
+let syncTimer = 0;
+const timeFormat = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+function syncStatus(text, kind = '') {
+  const el = $('#sync-status');
+  el.textContent = text;
+  el.className = 'status' + (kind ? ` is-${kind}` : '');
+}
+
+function syncedLabel(cfg) {
+  if (!cfg.lastSync) return `Connecté au compte ${cfg.login}`;
+  const d = new Date(cfg.lastSync);
+  const when = d.toDateString() === new Date().toDateString() ? `à ${timeFormat.format(d)}` : `le ${dateFormat.format(d)}`;
+  return `Synchronisé ${when} · ${cfg.login}`;
+}
+
+function renderSyncCard() {
+  const cfg = sync.loadConfig();
+  $('#sync-off').hidden = Boolean(cfg);
+  $('#sync-on').hidden = !cfg;
+  if (!cfg) return;
+  $('#sync-gist-link').href = `https://gist.github.com/${encodeURIComponent(cfg.login || '')}/${encodeURIComponent(cfg.gistId)}`;
+  if (!syncBusy) syncStatus(syncedLabel(cfg), 'on');
+}
+
+function scheduleSync(delay = 2500) {
+  if (!sync.loadConfig()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncNow(), delay);
+}
+
+async function localDoc() {
+  return {
+    templates: await store.getAll('templates'),
+    history: await store.getAll('history'),
+    tombstones: cleanTombstones(await store.kvGet('tombstones')),
+  };
+}
+
+// Écrit l'état fusionné en local, sans écraser une modification faite pendant la synchro.
+async function applyLocal(snapshot, merged) {
+  let changed = false;
+  const stamp = (i) => Number(i.updatedAt || i.createdAt || 0);
+  for (const storeName of ['templates', 'history']) {
+    const now = new Map((await store.getAll(storeName)).map((i) => [i.id, i]));
+    const before = new Map(snapshot[storeName].map((i) => [i.id, i]));
+    const keep = new Set();
+    for (const item of merged[storeName]) {
+      keep.add(item.id);
+      const cur = now.get(item.id);
+      if (!cur || stamp(item) > stamp(cur)) {
+        await store.put(storeName, item);
+        changed = true;
+      }
+    }
+    for (const [id, cur] of now) {
+      const old = before.get(id);
+      // Supprimé ailleurs, et pas retouché ici depuis la lecture.
+      if (!keep.has(id) && old && stamp(old) === stamp(cur)) {
+        await store.remove(storeName, id);
+        if (storeName === 'history' && session.id === id) session = { id: null, createdAt: null };
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
+
+async function syncNow({ quiet = true } = {}) {
+  const cfg = sync.loadConfig();
+  if (!cfg) return;
+  if (syncBusy) {
+    syncAgain = true;
+    return;
+  }
+  syncBusy = true;
+  clearTimeout(syncTimer);
+  syncStatus('Synchronisation…', 'work');
+  try {
+    const client = new sync.GistClient(cfg.token);
+    let remote;
+    try {
+      remote = await client.read(cfg.gistId);
+    } catch (e) {
+      if (e.code !== 'missing') throw e;
+      // Gist supprimé entre-temps : on en recrée un à partir de l'état local.
+      cfg.gistId = (await client.findOrCreate({})).id;
+      remote = {};
+    }
+    const remoteDoc = {
+      templates: cleanList(remote.templates, cleanTemplate),
+      history: cleanList(remote.history, cleanHistory),
+      tombstones: cleanTombstones(remote.tombstones),
+    };
+    const snapshot = await localDoc();
+    const merged = sync.merge(snapshot, remoteDoc);
+    const changed = await applyLocal(snapshot, merged);
+    await store.kvSet('tombstones', merged.tombstones);
+    if (sync.fingerprint(merged) !== sync.fingerprint(remoteDoc)) await client.write(cfg.gistId, merged);
+    cfg.lastSync = Date.now();
+    sync.saveConfig(cfg);
+    renderSyncCard();
+    syncStatus(syncedLabel(cfg), 'on');
+    if (changed) {
+      if (!$('#panel-history').hidden) renderHistory();
+      if (!$('#panel-templates').hidden) renderTemplates();
+    }
+    if (!quiet) toast(changed ? 'Synchronisation terminée : données mises à jour' : 'Synchronisation terminée : tout était à jour');
+  } catch (e) {
+    syncStatus(e.message || 'Synchronisation impossible.', 'err');
+    if (!quiet) toast(e.message || 'Synchronisation impossible.', { error: true });
+  } finally {
+    syncBusy = false;
+    if (syncAgain) {
+      syncAgain = false;
+      scheduleSync(300);
+    }
+  }
+}
+
+function setupSync() {
+  $('#sync-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = $('#sync-token');
+    const token = input.value.trim();
+    if (!/^(ghp_|github_pat_|gho_)[A-Za-z0-9_]{20,}$/.test(token)) {
+      toast('Ce texte ne ressemble pas à un jeton GitHub (ghp_… ou github_pat_…).', { error: true });
+      return;
+    }
+    const button = e.submitter || $('#sync-form button[type="submit"]');
+    await withBusy(button, async () => {
+      const client = new sync.GistClient(token);
+      const user = await client.user();
+      const { id, created } = await client.findOrCreate(await localDoc());
+      sync.saveConfig({ token, gistId: id, login: user.login, lastSync: 0 });
+      input.value = '';
+      renderSyncCard();
+      await syncNow();
+      toast(created ? 'Synchronisation activée : Gist secret créé' : 'Synchronisation activée : vos données ont été retrouvées');
+    });
+  });
+
+  $('#btn-sync-now').addEventListener('click', (e) => withBusy(e.currentTarget, () => syncNow({ quiet: false })));
+
+  $('#btn-sync-off').addEventListener('click', () => {
+    if (!confirm('Déconnecter cet appareil ? Le jeton y sera effacé ; le Gist et les données de cet appareil sont conservés.')) return;
+    sync.clearConfig();
+    renderSyncCard();
+    toast('Cet appareil n’est plus synchronisé');
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    const cfg = sync.loadConfig();
+    if (document.visibilityState === 'visible' && cfg && Date.now() - (cfg.lastSync || 0) > 30000) syncNow();
+  });
+  window.addEventListener('online', () => syncNow());
+  renderSyncCard();
 }
 
 /* ============================== Divers ============================== */
@@ -902,6 +1165,7 @@ async function restoreDraft() {
     state.content = sanitizeContent(draft.content);
     state.style = mergeStyle(draft.style);
     state.export = sanitizeExport(draft.export);
+    if (draft.view && STAGES.includes(draft.view.stage)) state.view.stage = draft.view.stage;
     const s = draft.session;
     if (s && typeof s.id === 'string') session = { id: s.id, createdAt: Number(s.createdAt) || Date.now() };
   } catch {
@@ -918,10 +1182,12 @@ async function init() {
   setupExport();
   setupTemplates();
   setupBackup();
+  setupSync();
   setupMisc();
   await restoreDraft();
   adjustEventInputs();
   renderNow();
+  syncNow();
 
   if (!(await store.persistent())) {
     toast('Stockage local indisponible (navigation privée ?) : modèles et historique ne seront pas conservés.', { error: true });

@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; object-src 'none'; base-uri 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://api.github.com https://gist.githubusercontent.com; object-src 'none'; base-uri 'self'">
   <title>CutieQR — créer, personnaliser, exporter</title>
   <meta name="description" content="Créez des QR codes personnalisés (couleurs, formes, logo, cadre) et exportez-les en PNG, SVG, JPEG, WebP ou PDF. Tout reste sur votre appareil.">
-  <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#071410" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-title" content="QtQr">
   <meta name="application-name" content="CutieQR">
+  <link rel="stylesheet" href="css/kit/juritel-design.css">
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/theme.js"></script>
 </head>
@@ -39,25 +40,27 @@
       <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
       <symbol id="i-swap" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></symbol>
       <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
       <symbol id="i-install" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 7v7M9 11l3 3 3-3"/></symbol>
     </defs>
   </svg>
 
   <header class="topbar">
-    <div class="brand">
-      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-        <rect class="bm-bg" width="64" height="64" rx="15"/>
-        <g transform="translate(32 32) scale(.8) translate(-31.5 -32)">
-          <g class="bm-fg">
-            <rect x="9" y="18" width="26" height="26" rx="9" stroke-width="6"/>
-            <path d="M30 39 37 47" stroke-width="6"/>
+    <div class="brand-bar">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <g transform="translate(32 32) scale(.8) translate(-31.75 -32)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="22" cy="32" r="12.5" stroke-width="6"/>
+            <path d="M26.5 36.5 36 46" stroke-width="6"/>
             <path d="M47 12v13.5Q47 30 51.5 30M43.5 18H51" stroke-width="4"/>
             <path d="M47 52V35h4a4.25 4.25 0 0 1 0 8.5h-4m3.5 0L55 52" stroke-width="4"/>
           </g>
-          <rect class="bm-dot" x="18" y="27" width="8" height="8" rx="2.5"/>
-        </g>
-      </svg>
-      <span class="brand-name">Cutie<em>QR</em></span>
+        </svg>
+      </span>
+      <span class="brand" aria-label="CutieQR"><span class="brand-initial">C</span>utieQR</span>
     </div>
     <div class="top-actions">
       <button type="button" class="btn ghost" id="btn-new" title="Repartir d’un QR code vierge">
@@ -203,7 +206,7 @@
         </div>
         <label class="field range" data-show="style.bg.type=linear"><span>Angle <output></output></span>
           <input type="range" min="0" max="360" step="5" data-bind="style.bg.angle" data-unit="°"></label>
-        <p class="hint" data-show="style.bg.type=none">Le fond transparent est conservé en PNG, WebP, SVG et PDF. Le JPEG, lui, reçoit un fond blanc.</p>
+        <p class="hint" data-show="style.bg.type=none">Le fond transparent est conservé en PNG, WebP, SVG et PDF. Le JPEG, qui ne le gère pas, reçoit un fond blanc — ou sombre si vos modules sont clairs.</p>
 
         <h2>Yeux</h2>
         <label class="check"><input type="checkbox" data-bind="style.eyes.custom"><span>Couleurs distinctes pour les trois repères d’angle</span></label>
@@ -245,7 +248,7 @@
       <!-- ===== Logo ===== -->
       <div class="panel" role="tabpanel" id="panel-logo" aria-labelledby="tab-logo" hidden>
         <div class="dropzone" id="logo-drop">
-          <img id="logo-thumb" class="checker" alt="Logo actuel" hidden>
+          <img id="logo-thumb" data-stage="checker" alt="Logo actuel" hidden>
           <div class="dropzone-text">
             <strong id="logo-title">Ajouter un logo</strong>
             <span>PNG, JPEG, SVG ou WebP — glissez l’image ici ou choisissez un fichier.</span>
@@ -340,12 +343,50 @@
           <button type="button" class="btn danger" id="btn-clear-history"><svg class="icon"><use href="#i-trash"/></svg><span>Vider l’historique</span></button>
         </div>
         <p class="hint">La sauvegarde (modèles + historique) est un fichier à restaurer sur un autre appareil pour y retrouver vos créations.</p>
+
+        <h2>Synchronisation entre appareils</h2>
+        <div class="sync-card" id="sync-card">
+          <div class="sync-head">
+            <span class="sync-icon"><svg class="icon"><use href="#i-cloud"/></svg></span>
+            <div>
+              <b>Gist GitHub privé</b>
+              <small>Vos modèles et votre historique, identiques sur tous vos appareils.</small>
+            </div>
+          </div>
+          <div id="sync-off">
+            <form class="group" id="sync-form" autocomplete="off">
+              <p class="hint">Créez un jeton GitHub limité aux Gists, puis collez-le ici. Faites de même sur chaque appareil : ils partageront le même Gist secret.</p>
+              <a class="btn" id="sync-token-link" href="https://github.com/settings/tokens/new?scopes=gist&amp;description=CutieQR%20%E2%80%94%20synchronisation" target="_blank" rel="noopener noreferrer"><svg class="icon"><use href="#i-external"/></svg><span>Créer un jeton sur GitHub</span></a>
+              <label class="field"><span>Jeton GitHub (droit « gist » uniquement)</span>
+                <input type="password" id="sync-token" placeholder="ghp_… ou github_pat_…" spellcheck="false" autocomplete="off"></label>
+              <button type="submit" class="btn primary"><svg class="icon"><use href="#i-cloud"/></svg><span>Activer la synchronisation</span></button>
+              <p class="hint">Le jeton reste sur cet appareil et ne sert qu’à lire et écrire votre Gist « CutieQR ». Un Gist secret n’apparaît nulle part publiquement, mais toute personne qui en obtient l’adresse peut le lire, contenus compris (contacts, IBAN, logos) : réservez la synchronisation à des données que vous accepteriez de voir circuler.</p>
+            </form>
+          </div>
+          <div class="group" id="sync-on" hidden>
+            <span class="status" id="sync-status">Non synchronisé</span>
+            <div class="row actions">
+              <button type="button" class="btn" id="btn-sync-now"><svg class="icon"><use href="#i-refresh"/></svg><span>Synchroniser maintenant</span></button>
+              <a class="btn ghost" id="sync-gist-link" target="_blank" rel="noopener noreferrer"><svg class="icon"><use href="#i-external"/></svg><span>Voir le Gist</span></a>
+              <button type="button" class="btn danger" id="btn-sync-off"><svg class="icon"><use href="#i-logout"/></svg><span>Déconnecter cet appareil</span></button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <aside class="stage" aria-label="Aperçu et export">
       <div class="preview-card">
-        <div class="preview checker" id="preview" role="img" aria-label="Aperçu du QR code"></div>
+        <div class="stage-bar">
+          <span class="label">Aperçu</span>
+          <div class="seg xs" role="radiogroup" aria-label="Fond de l’aperçu">
+            <label title="Choisit le fond le plus lisible selon vos couleurs"><input type="radio" name="stage" data-bind="view.stage" value="auto"><span>Auto</span></label>
+            <label title="Damier : montre la transparence"><input type="radio" name="stage" data-bind="view.stage" value="checker"><span>Damier</span></label>
+            <label><input type="radio" name="stage" data-bind="view.stage" value="light"><span>Clair</span></label>
+            <label><input type="radio" name="stage" data-bind="view.stage" value="dark"><span>Sombre</span></label>
+          </div>
+        </div>
+        <div class="preview" id="preview" data-stage="studio" role="img" aria-label="Aperçu du QR code"></div>
         <div class="preview-meta">
           <span class="badge" id="scan-badge" data-state="idle"><svg class="icon"><use href="#i-check"/></svg><span id="scan-text">—</span></span>
           <span class="qr-info" id="qr-info"></span>
